@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace Belterra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0a0a0a; color: #f8fafc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .premium-card { background: #161616; border: 1px solid #262626; border-radius: 1.5rem; transition: 0.3s; cursor: pointer; }
+        .input-dark { background: #000; border: 1px solid #333; padding: 14px; border-radius: 12px; width: 100%; margin-bottom: 12px; font-size: 14px; color: white; outline: none; }
+        .input-dark:focus { border-color: #22c55e; }
+        .nav-bottom { background: rgba(10, 10, 10, 0.95); border-top: 1px solid #262626; backdrop-filter: blur(10px); height: 75px; }
+        .tab-btn { flex: 1; padding: 12px; font-size: 11px; font-weight: 900; border-radius: 10px; text-transform: uppercase; transition: 0.3s; background: #1a1a1a; color: #555; }
+        .active-tab { background: #22c55e; color: white; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
+        .btn-main { background: #22c55e; padding: 15px; border-radius: 14px; font-weight: 900; text-transform: uppercase; width: 100%; }
+        
+        /* Modais */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; padding: 20px; align-items: center; justify-content: center; overflow-y: auto; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #111; width: 100%; max-w: sm; border-radius: 2rem; border: 1px solid #262626; max-height: 90vh; overflow-y: auto; }
+        
+        /* Scrollbar invisível para a galeria */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <header class="p-5 flex justify-center border-b border-white/5">
+        <div class="flex items-center gap-2">
+            <div class="bg-blue-600 p-1 rounded-md rotate-45"><i class="fa fa-chevron-right text-white -rotate-45 text-[10px]"></i></div>
+            <h1 class="text-lg font-black tracking-tighter uppercase italic">Marketplace <span class="text-blue-500">Belterra</span></h1>
+        </div>
+    </header>
+
+    <div id="main-tabs" class="flex px-4 gap-3 mt-4 mb-4">
+        <button id="tab-vendas" onclick="switchSection('vendas')" class="tab-btn active-tab">Compra & Venda</button>
+        <button id="tab-transporte" onclick="switchSection('transporte')" class="tab-btn">Transporte</button>
+    </div>
+
+    <main class="px-4 pb-32">
+        <section id="page-vendas" class="page active">
+            <div id="grid-anuncios" class="grid grid-cols-2 gap-4">
+                <p class="col-span-2 text-center py-20 text-neutral-600 text-[10px] font-bold uppercase italic">Buscando ofertas...</p>
+            </div>
+        </section>
+
+        <section id="page-transporte" class="page">
+            <div id="lista-motoristas" class="space-y-4">
+                <p class="text-center py-20 text-neutral-600 text-[10px] font-bold uppercase italic">Buscando motoristas...</p>
+            </div>
+        </section>
+
+        <section id="page-perfil" class="page">
+            <div id="auth-login" class="premium-card p-6">
+                <h2 class="text-xl font-black mb-6 uppercase tracking-tighter">Entrar</h2>
+                <input type="email" id="login-email" placeholder="E-mail" class="input-dark">
+                <input type="password" id="login-pass" placeholder="Senha" class="input-dark">
+                <button onclick="fazerLogin()" class="btn-main">Acessar</button>
+                <p class="text-center text-[10px] mt-6 text-neutral-500 uppercase font-bold">
+                    Novo por aqui? <a href="javascript:toggleAuth()" class="text-blue-500">Criar Cadastro Completo</a>
+                </p>
+            </div>
+
+            <div id="auth-cadastro" class="premium-card p-6 hidden">
+                <h2 class="text-xl font-black mb-1 uppercase tracking-tighter text-green-500">Cadastro Oficial</h2>
+                <p class="text-[9px] text-neutral-500 font-bold mb-6 italic uppercase">Todos os campos obrigatórios</p>
+                <input type="text" id="cad-nome" placeholder="Nome Completo" class="input-dark">
+                <input type="text" id="cad-cpf" placeholder="CPF (apenas números)" class="input-dark">
+                <input type="text" id="cad-whatsapp" placeholder="WhatsApp (com DDD)" class="input-dark">
+                <input type="email" id="cad-email" placeholder="E-mail" class="input-dark">
+                <input type="password" id="cad-pass" placeholder="Crie uma Senha" class="input-dark">
+                <label class="text-[9px] font-black text-neutral-500 uppercase ml-1">Tipo de conta:</label>
+                <select id="cad-tipo" class="input-dark mt-1">
+                    <option value="client">Cliente / Comprador</option>
+                    <option value="driver">Motorista (Uber)</option>
+                </select>
+                <button onclick="criarConta()" class="btn-main !bg-blue-600 shadow-lg shadow-blue-900/30">Lançar Cadastro</button>
+                <button onclick="toggleAuth()" class="w-full text-[10px] text-neutral-600 mt-4 uppercase font-black italic">Voltar</button>
+            </div>
+
+            <div id="user-logged" class="hidden">
+                <div class="premium-card p-6 border-blue-600/30 mb-6">
+                    <p class="text-[9px] text-neutral-500 font-black uppercase">Perfil Belterra</p>
+                    <h2 id="display-name" class="text-2xl font-black uppercase tracking-tighter mb-4">---</h2>
+                    <button onclick="fazerLogout()" class="text-red-500 text-[10px] font-black uppercase tracking-widest bg-red-500/10 px-4 py-2 rounded-lg">Desconectar</button>
+                </div>
+
+                <div class="premium-card p-6 border-green-600/30">
+                    <h3 class="font-black uppercase text-green-500 tracking-tighter mb-4"><i class="fa fa-store mr-2"></i>Minha Loja</h3>
+                    <button onclick="abrirModalCriarAnuncio()" class="btn-main text-xs mb-6 shadow-lg shadow-green-900/20"><i class="fa fa-plus mr-2"></i> Criar Novo Anúncio</button>
+                    
+                    <h4 class="text-[10px] font-black text-neutral-500 uppercase mb-3">Meus Anúncios Publicados</h4>
+                    <div id="lista-meus-anuncios" class="space-y-3">
+                        <p class="text-[10px] text-neutral-600 italic">Você ainda não tem anúncios.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-criar-anuncio" class="modal-overlay">
+        <div class="modal-content p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black uppercase tracking-tighter text-green-500">Novo Anúncio</h2>
+                <button onclick="fecharModal('modal-criar-anuncio')" class="text-neutral-500"><i class="fa fa-times text-xl"></i></button>
+            </div>
+            
+            <label class="text-[9px] font-black text-neutral-500 uppercase">Fotos (Máx 5)</label>
+            <input type="file" id="novo-fotos" accept="image/*" multiple class="input-dark text-[10px]" onchange="limitarFotos(this)">
+            
+            <input type="text" id="novo-titulo" placeholder="Título do Produto" class="input-dark">
+            <input type="number" id="novo-valor" placeholder="Valor (R$)" class="input-dark">
+            <textarea id="novo-desc" placeholder="Descrição completa..." class="input-dark h-24 resize-none"></textarea>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="novo-tipo" placeholder="Tipo (ex: Celular)" class="input-dark">
+                <input type="text" id="novo-marca" placeholder="Marca" class="input-dark">
+                <select id="novo-estado" class="input-dark">
+                    <option value="Novo">Novo</option>
+                    <option value="Usado">Usado</option>
+                </select>
+                <select id="novo-genero" class="input-dark">
+                    <option value="Unissex">Unissex</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                </select>
+            </div>
+            
+            <input type="text" id="novo-cidade" placeholder="Cidade" class="input-dark" value="Belterra">
+            <input type="text" id="novo-endereco" placeholder="Endereço / Bairro" class="input-dark">
+            <input type="text" id="novo-contato" placeholder="WhatsApp para contato" class="input-dark">
+
+            <button onclick="salvarAnuncio()" id="btn-salvar-anuncio" class="btn-main mt-4">Publicar Anúncio</button>
+        </div>
+    </div>
+
+    <div id="modal-detalhes" class="modal-overlay">
+        <div class="modal-content overflow-hidden">
+            <div id="detalhe-galeria" class="flex overflow-x-auto snap-x snap-mandatory hide-scroll h-64 bg-black">
+                </div>
+            
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 id="detalhe-titulo" class="text-xl font-black uppercase tracking-tighter">---</h2>
+                    <span id="detalhe-preco" class="text-green-500 font-black text-xl">R$ 0</span>
+                </div>
+                
+                <div id="detalhe-badges" class="flex flex-wrap gap-2 mb-4"></div>
+
+                <div class="bg-[#1a1a1a] p-4 rounded-xl border border-neutral-800 mb-6">
+                    <p class="text-[9px] font-black text-neutral-500 uppercase mb-1">Localização</p>
+                    <p id="detalhe-local" class="text-xs font-bold text-neutral-300">---</p>
+                </div>
+
+                <p class="text-[9px] font-black text-neutral-500 uppercase mb-1">Descrição</p>
+                <p id="detalhe-descricao" class="text-neutral-400 text-xs mb-8 leading-relaxed">---</p>
+                
+                <div class="flex gap-2">
+                    <button onclick="fecharModal('modal-detalhes')" class="flex-1 bg-neutral-800 py-4 rounded-xl text-[10px] font-black uppercase">Voltar</button>
+                    <a id="btn-whatsapp" href="#" target="_blank" class="flex-[2] bg-green-600 py-4 rounded-xl text-[10px] font-black uppercase text-center flex items-center justify-center gap-2">
+                        <i class="fab fa-whatsapp text-lg"></i> Negociar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-bottom fixed bottom-0 inset-x-0 flex justify-around items-center px-4 z-50">
+        <button onclick="switchPage('vendas')" class="flex flex-col items-center gap-1 text-green-500">
+            <i class="fa fa-shopping-bag text-xl"></i><span class="text-[9px] font-black uppercase">Loja</span>
+        </button>
+        <button onclick="switchPage('transporte')" class="flex flex-col items-center gap-1 text-neutral-600">
+            <i class="fa fa-car text-xl"></i><span class="text-[9px] font-black uppercase">Uber</span>
+        </button>
+        <button onclick="switchPage('perfil')" class="flex flex-col items-center gap-1 text-neutral-600">
+            <i class="fa fa-user text-xl"></i><span class="text-[9px] font-black uppercase">Conta</span>
+        </button>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1YcxY_-qe2MVZeJszYdnFbuIXypkeZ44",
+            authDomain: "marketplace-belterra.firebaseapp.com",
+            projectId: "marketplace-belterra",
+            storageBucket: "marketplace-belterra.firebasestorage.app",
+            messagingSenderId: "783203942610",
+            appId: "1:783203942610:web:f637a8af65089a7a65ad0b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        let currentUser = null;
+
+        // --- NAVEGAÇÃO E MODAIS ---
+        window.switchPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-'+id).classList.add('active');
+            document.getElementById('main-tabs').classList.toggle('hidden', id === 'perfil');
+        };
+
+        window.switchSection = (section) => {
+            document.getElementById('page-vendas').classList.toggle('active', section === 'vendas');
+            document.getElementById('page-transporte').classList.toggle('active', section === 'transporte');
+            document.getElementById('tab-vendas').className = section === 'vendas' ? "tab-btn active-tab" : "tab-btn";
+            document.getElementById('tab-transporte').className = section === 'transporte' ? "tab-btn active-tab !bg-blue-600" : "tab-btn";
+        };
+
+        window.toggleAuth = () => {
+            document.getElementById('auth-login').classList.toggle('hidden');
+            document.getElementById('auth-cadastro').classList.toggle('hidden');
+        };
+
+        window.abrirModalCriarAnuncio = () => document.getElementById('modal-criar-anuncio').classList.add('active');
+        window.fecharModal = (id) => document.getElementById(id).classList.remove('active');
+
+        // --- LÓGICA DE FOTOS (Base64) ---
+        let fotosArray = [];
+        window.limitarFotos = (input) => {
+            if (input.files.length > 5) {
+                alert("Você só pode adicionar no máximo 5 fotos.");
+                input.value = "";
+                fotosArray = [];
+                return;
+            }
+            fotosArray = [];
+            Array.from(input.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => fotosArray.push(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // --- SALVAR NOVO ANÚNCIO ---
+        window.salvarAnuncio = async () => {
+            const btn = document.getElementById('btn-salvar-anuncio');
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            const dados = {
+                vendedorId: currentUser.uid,
+                fotos: fotosArray.length > 0 ? fotosArray : ['https://via.placeholder.com/400?text=Sem+Foto'],
+                titulo: document.getElementById('novo-titulo').value,
+                preco: document.getElementById('novo-valor').value,
+                descricao: document.getElementById('novo-desc').value,
+                tipo: document.getElementById('novo-tipo').value,
+                marca: document.getElementById('novo-marca').value,
+                estado: document.getElementById('novo-estado').value,
+                genero: document.getElementById('novo-genero').value,
+                cidade: document.getElementById('novo-cidade').value,
+                endereco: document.getElementById('novo-endereco').value,
+                contato: document.getElementById('novo-contato').value,
+                status: 'disponivel',
+                criadoEm: new Date()
+            };
+
+            if(!dados.titulo || !dados.preco || !dados.contato) {
+                alert("Título, Valor e Contato são obrigatórios!");
+                btn.innerText = "Publicar Anúncio";
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "anuncios"), dados);
+                alert("Anúncio publicado com sucesso!");
+                fecharModal('modal-criar-anuncio');
+                // Limpar form
+                document.querySelectorAll('#modal-criar-anuncio input, #modal-criar-anuncio textarea').forEach(i => i.value = '');
+                fotosArray = [];
+            } catch (error) {
+                alert("Erro ao publicar: " + error.message);
+            }
+            btn.innerText = "Publicar Anúncio";
+            btn.disabled = false;
+        };
+
+        // --- EXIBIR DETALHES COM GALERIA ---
+        window.abrirAnuncioObj = (objBase64) => {
+            const i = JSON.parse(decodeURIComponent(objBase64));
+            
+            document.getElementById('detalhe-titulo').innerText = i.titulo;
+            document.getElementById('detalhe-preco').innerText = 'R$ ' + i.preco;
+            document.getElementById('detalhe-descricao').innerText = i.descricao || "Nenhum detalhe adicional.";
+            document.getElementById('detalhe-local').innerText = `${i.cidade || 'Belterra'} - ${i.endereco || ''}`;
+            
+            // Montar Badges (Marca, Estado, Tipo)
+            let badgesHTML = '';
+            if(i.estado) badgesHTML += `<span class="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[10px] font-bold uppercase">${i.estado}</span>`;
+            if(i.marca) badgesHTML += `<span class="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[10px] font-bold uppercase">${i.marca}</span>`;
+            if(i.tipo) badgesHTML += `<span class="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-[10px] font-bold uppercase">${i.tipo}</span>`;
+            document.getElementById('detalhe-badges').innerHTML = badgesHTML;
+
+            // Montar Galeria de Fotos
+            const galeria = document.getElementById('detalhe-galeria');
+            galeria.innerHTML = "";
+            const fotos = i.fotos || [i.url || 'https://via.placeholder.com/400']; // Retrocompatibilidade
+            fotos.forEach(foto => {
+                galeria.innerHTML += `<img src="${foto}" class="w-full h-full object-cover flex-shrink-0 snap-center">`;
+            });
+
+            document.getElementById('btn-whatsapp').href = `https://wa.me/55${i.contato || i.whatsapp}?text=Olá, vi no Marketplace Belterra: ${i.titulo}`;
+            document.getElementById('modal-detalhes').classList.add('active');
+        };
+
+        // --- CARREGAR ANÚNCIOS NA LOJA (Somente Disponíveis) ---
+        onSnapshot(collection(db, "anuncios"), (snap) => {
+            const grid = document.getElementById('grid-anuncios');
+            grid.innerHTML = "";
+            snap.forEach(d => {
+                const i = d.data();
+                if(i.status !== 'vendida') {
+                    // Pega a primeira foto do array de fotos ou a URL antiga
+                    const fotoCapa = (i.fotos && i.fotos.length > 0) ? i.fotos[0] : (i.url || 'https://via.placeholder.com/150');
+                    const objBase64 = encodeURIComponent(JSON.stringify(i));
+                    
+                    grid.innerHTML += `
+                        <div class="premium-card overflow-hidden" onclick="abrirAnuncioObj('${objBase64}')">
+                            <img src="${fotoCapa}" class="w-full h-32 object-cover">
+                            <div class="p-3">
+                                <p class="text-green-500 font-black text-[10px]">R$ ${i.preco}</p>
+                                <h4 class="text-[11px] font-black uppercase truncate">${i.titulo}</h4>
+                            </div>
+                        </div>`;
+                }
+            });
+        });
+
+        // --- CARREGAR MEUS ANÚNCIOS (Para o Vendedor Editar) ---
+        function carregarMeusAnuncios(uid) {
+            const q = query(collection(db, "anuncios"), where("vendedorId", "==", uid));
+            onSnapshot(q, (snap) => {
+                const lista = document.getElementById('lista-meus-anuncios');
+                lista.innerHTML = "";
+                if(snap.empty) {
+                    lista.innerHTML = `<p class="text-[10px] text-neutral-600 italic">Você não tem anúncios.</p>`;
+                    return;
+                }
+                snap.forEach(d => {
+                    const i = d.data();
+                    const corStatus = i.status === 'vendida' ? 'text-red-500' : 'text-green-500';
+                    lista.innerHTML += `
+                        <div class="bg-black p-4 rounded-xl border border-neutral-800">
+                            <div class="flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="text-xs font-black uppercase truncate w-40">${i.titulo}</h4>
+                                    <p class="text-[10px] font-bold ${corStatus} uppercase">Status: ${i.status}</p>
+                                </div>
+                                <p class="text-sm font-black text-white">R$ ${i.preco}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="alterarPreco('${d.id}', '${i.preco}')" class="flex-1 bg-neutral-800 py-2 rounded-lg text-[9px] font-black uppercase">Mudar Valor</button>
+                                <button onclick="mudarStatusVenda('${d.id}', '${i.status}')" class="flex-1 border border-neutral-700 py-2 rounded-lg text-[9px] font-black uppercase ${i.status === 'vendida' ? 'text-green-500' : 'text-red-500'}">
+                                    ${i.status === 'vendida' ? 'Reativar' : 'Marcar Vendido'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // --- FUNÇÕES DE EDIÇÃO DO VENDEDOR ---
+        window.alterarPreco = async (id, precoAtual) => {
+            const novoValor = prompt("Digite o novo valor (R$):", precoAtual);
+            if(novoValor && novoValor !== precoAtual) {
+                await updateDoc(doc(db, "anuncios", id), { preco: novoValor });
+            }
+        };
+
+        window.mudarStatusVenda = async (id, statusAtual) => {
+            const novoStatus = statusAtual === 'vendida' ? 'disponivel' : 'vendida';
+            await updateDoc(doc(db, "anuncios", id), { status: novoStatus });
+        };
+
+        // --- CARREGAR MOTORISTAS UBER ---
+        onSnapshot(collection(db, "users"), (snap) => {
+            const lista = document.getElementById('lista-motoristas');
+            lista.innerHTML = "";
+            snap.forEach(d => {
+                const v = d.data();
+                if(v.tipo === 'driver' && v.status === 'disponivel') {
+                    lista.innerHTML += `
+                        <div class="premium-card p-4 flex justify-between items-center" onclick="window.open('https://wa.me/55${v.whatsapp}')">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full bg-neutral-900 border-2 border-blue-600 flex items-center justify-center"><i class="fa fa-car"></i></div>
+                                <div><h4 class="font-black text-xs uppercase">${v.nome}</h4><p class="text-[8px] text-neutral-500 uppercase font-bold">Saída: ${v.horarioPartida}</p></div>
+                            </div>
+                            <p class="text-sm font-black text-blue-500">R$ ${v.valorPorPessoa}</p>
+                        </div>`;
+                }
+            });
+        });
+
+        // --- AUTH ---
+        window.criarConta = async () => { /* Mesma lógica de antes */
+            const n = document.getElementById('cad-nome').value;
+            const c = document.getElementById('cad-cpf').value;
+            const z = document.getElementById('cad-whatsapp').value;
+            const e = document.getElementById('cad-email').value;
+            const p = document.getElementById('cad-pass').value;
+            const t = document.getElementById('cad-tipo').value;
+            if(!n || !c || !z || !e || !p) return alert("Preencha tudo!");
+            try {
+                const userCred = await createUserWithEmailAndPassword(auth, e, p);
+                await setDoc(doc(db, "users", userCred.user.uid), {
+                    nome: n, cpf: c, whatsapp: z, tipo: t, status: t === 'driver' ? 'disponivel' : 'ativo', vagas: 4, valorPorPessoa: "25", horarioPartida: "A combinar"
+                });
+                alert("Cadastro realizado!");
+                window.location.reload();
+            } catch (err) { alert(err.message); }
+        };
+
+        window.fazerLogin = () => {
+            const e = document.getElementById('login-email').value;
+            const p = document.getElementById('login-pass').value;
+            signInWithEmailAndPassword(auth, e, p).catch(err => alert("Erro ao entrar."));
+        };
+
+        window.fazerLogout = () => signOut(auth).then(() => window.location.reload());
+
+        onAuthStateChanged(auth, async (user) => {
+            if(user) {
+                currentUser = user;
+                document.getElementById('auth-login').classList.add('hidden');
+                document.getElementById('user-logged').classList.remove('hidden');
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if(snap.exists()) {
+                    document.getElementById('display-name').innerText = snap.data().nome;
+                    // Se estiver logado, carrega os anúncios dele para edição
+                    carregarMeusAnuncios(user.uid);
+                }
+            } else {
+                currentUser = null;
+            }
+        });
+    </script>
+</body>
+</html>
